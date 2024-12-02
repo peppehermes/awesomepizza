@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<PizzaOrder, Long> {
     Optional<PizzaOrder> findByOrderCode(String orderCode);
 
-    List<PizzaOrder> findByStatusOrderOrderByCreatedAtAsc(OrderStatus status);
+    List<PizzaOrder> findByStatusOrderByInsertTimestampAsc(OrderStatus status);
 
     Optional<PizzaOrder> findByStatus(OrderStatus status);
 }

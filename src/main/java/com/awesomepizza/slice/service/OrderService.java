@@ -25,6 +25,9 @@ public class OrderService {
     public OrderStatusResponse createOrder(CreateOrderRequest request) {
         PizzaOrder order = new PizzaOrder();
 
+        order.setPizzaType(request.getPizzaType());
+        order.setQuantity(request.getQuantity());
+
         PizzaOrder savedOrder = orderRepository.save(order);
 
         return mapToOrderStatusResponse(savedOrder);
@@ -53,7 +56,7 @@ public class OrderService {
     }
 
     public List<OrderDto> getOrderQueue() {
-        List<PizzaOrder> queuedOrders = orderRepository.findByStatusOrderOrderByCreatedAtAsc(OrderStatus.RECEIVED);
+        List<PizzaOrder> queuedOrders = orderRepository.findByStatusOrderByInsertTimestampAsc(OrderStatus.RECEIVED);
 
         return queuedOrders.stream()
                 .map(this::mapToOrderDto)
@@ -69,7 +72,7 @@ public class OrderService {
         }
 
         // If no order is in PREPARING, then get the next RECEIVED order
-        List<PizzaOrder> queuedOrders = orderRepository.findByStatusOrderOrderByCreatedAtAsc(OrderStatus.RECEIVED);
+        List<PizzaOrder> queuedOrders = orderRepository.findByStatusOrderByInsertTimestampAsc(OrderStatus.RECEIVED);
 
         // If the queue is empty, then return an error
         if (queuedOrders.isEmpty()) {

@@ -114,7 +114,7 @@ class OrderServiceTest {
         order2.setInsertTimestamp(LocalDateTime.now().minusMinutes(5));
 
         // Set what to save when repository search is invoked
-        when(orderRepository.findByStatusOrderOrderByCreatedAtAsc(OrderStatus.RECEIVED))
+        when(orderRepository.findByStatusOrderByInsertTimestampAsc(OrderStatus.RECEIVED))
                 .thenReturn(Arrays.asList(order1, order2));
 
         // Call service
@@ -127,6 +127,82 @@ class OrderServiceTest {
 
     // TODO
     @Test
-    void getNextOrder_ShouldReturnNextOrder() { }
+    void getNextOrder_ShouldReturnFirstReceivedOrder() {
+        // Create existing orders
+        PizzaOrder order1 = new PizzaOrder();
+        order1.setOrderCode("TEST123");
+        order1.setStatus(OrderStatus.RECEIVED);
+        order1.setQuantity(1);
+        order1.setPizzaType("Margherita");
+        order1.setInsertTimestamp(LocalDateTime.now().minusMinutes(10));
+
+        PizzaOrder order2 = new PizzaOrder();
+        order2.setOrderCode("TEST456");
+        order2.setStatus(OrderStatus.RECEIVED);
+        order2.setQuantity(2);
+        order2.setPizzaType("Capricciosa");
+        order2.setInsertTimestamp(LocalDateTime.now().minusMinutes(5));
+
+        // Set what to save when repository search is invoked
+        when(orderRepository.findByStatusOrderByInsertTimestampAsc(OrderStatus.RECEIVED))
+                .thenReturn(Arrays.asList(order1, order2));
+
+        when(orderRepository.findByStatus(OrderStatus.PREPARING))
+                .thenReturn(Optional.empty());
+
+        // Call service
+        OrderDto orderDto = orderService.getNextOrder();
+
+        assertEquals("TEST123", orderDto.getOrderCode());
+        assertEquals(OrderStatus.PREPARING, orderDto.getStatus());
+        assertEquals(1, orderDto.getQuantity());
+        assertEquals("Margherita", orderDto.getPizzaType());
+    }
+
+    @Test
+    void getNextOrder_ShouldReturnPreparingOrder() {
+        // Create existing orders
+        PizzaOrder order1 = new PizzaOrder();
+        order1.setOrderCode("TEST123");
+        order1.setStatus(OrderStatus.PREPARING);
+        order1.setQuantity(1);
+        order1.setPizzaType("Margherita");
+        order1.setInsertTimestamp(LocalDateTime.now().minusMinutes(10));
+
+        PizzaOrder order2 = new PizzaOrder();
+        order2.setOrderCode("TEST456");
+        order2.setStatus(OrderStatus.RECEIVED);
+        order2.setQuantity(2);
+        order2.setPizzaType("Capricciosa");
+        order2.setInsertTimestamp(LocalDateTime.now().minusMinutes(5));
+
+        // Set what to save when repository search is invoked
+        when(orderRepository.findByStatusOrderByInsertTimestampAsc(OrderStatus.RECEIVED))
+                .thenReturn(List.of(order2));
+
+        when(orderRepository.findByStatus(OrderStatus.PREPARING))
+                .thenReturn(Optional.of(order1));
+
+        // Call service
+        OrderDto orderDto = orderService.getNextOrder();
+
+        assertEquals("TEST123", orderDto.getOrderCode());
+        assertEquals(OrderStatus.PREPARING, orderDto.getStatus());
+        assertEquals(1, orderDto.getQuantity());
+        assertEquals("Margherita", orderDto.getPizzaType());
+    }
+
+    @Test
+    void getNextOrder_ShouldThrowException() {
+        // Set what to save when repository search is invoked
+        when(orderRepository.findByStatusOrderByInsertTimestampAsc(OrderStatus.RECEIVED))
+                .thenReturn(null);
+
+        when(orderRepository.findByStatus(OrderStatus.PREPARING))
+                .thenReturn(Optional.empty());
+
+        // Call service
+        assertThrows(RuntimeException.class, () -> orderService.getNextOrder());
+    }
 
 }

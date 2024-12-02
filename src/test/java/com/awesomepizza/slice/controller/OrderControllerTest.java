@@ -123,7 +123,7 @@ public class OrderControllerTest {
         // Perform API request
         mockMvc.perform(get("/api/orders/queue"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length").value(2))
+                .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].orderCode").value("TEST123"))
                 .andExpect(jsonPath("$[0].pizzaType").value("Margherita"))
                 .andExpect(jsonPath("$[1].orderCode").value("TEST456"))
@@ -132,5 +132,20 @@ public class OrderControllerTest {
 
     // TODO
     @Test
-    void getNextOrder_ShouldReturnNextOrder() throws Exception { }
+    void getNextOrder_ShouldReturnNextOrder() throws Exception {
+        // Create existing orders
+        OrderDto order1 = new OrderDto();
+        order1.setOrderCode("TEST123");
+        order1.setStatus(OrderStatus.PREPARING);
+        order1.setQuantity(1);
+        order1.setPizzaType("Margherita");
+        order1.setInsertTimestamp(LocalDateTime.now().minusMinutes(10));
+
+        when(orderService.getNextOrder()).thenReturn(order1);
+
+        mockMvc.perform(get("/api/orders/next"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderCode").value("TEST123"))
+                .andExpect(jsonPath("$.status").value("PREPARING"));
+    }
 }
