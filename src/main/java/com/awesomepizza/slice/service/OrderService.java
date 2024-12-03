@@ -7,17 +7,22 @@ import com.awesomepizza.slice.entity.PizzaOrder;
 import com.awesomepizza.slice.enums.OrderStatus;
 import com.awesomepizza.slice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class OrderService {
+    private final static Logger LOGGER = LogManager.getLogger(OrderService.class);
+
     private final OrderRepository orderRepository;
 
     //region public methods
@@ -25,8 +30,12 @@ public class OrderService {
     public OrderStatusResponse createOrder(CreateOrderRequest request) {
         PizzaOrder order = new PizzaOrder();
 
+        order.setOrderCode(generateUniqueOrderCode());
         order.setPizzaType(request.getPizzaType());
         order.setQuantity(request.getQuantity());
+        order.setStatus(OrderStatus.RECEIVED);
+        order.setInsertTimestamp(LocalDateTime.now());
+        order.setUpdateTimestamp(LocalDateTime.now());
 
         PizzaOrder savedOrder = orderRepository.save(order);
 
@@ -35,6 +44,11 @@ public class OrderService {
 
     public OrderStatusResponse getOrderStatus(String orderCode) {
         PizzaOrder order = getPizzaOrder(orderCode);
+
+        if (order == null) {
+            LOGGER.warn("Order {} not found", orderCode);
+            return null;
+        }
 
         return mapToOrderStatusResponse(order);
     }
@@ -45,7 +59,8 @@ public class OrderService {
         // Check if the order status is RECEIVED or PREPARING
         // Otherwise, if it is in READY state it cannot be updated
         if (order.getStatus().equals(OrderStatus.READY)) {
-            throw new RuntimeException("Order in READY state, cannot update");
+            LOGGER.warn("Order {} in READY state, cannot update", order.getOrderCode());
+            return null;
         }
 
         order.setStatus(newStatus);
@@ -74,9 +89,10 @@ public class OrderService {
         // If no order is in PREPARING, then get the next RECEIVED order
         List<PizzaOrder> queuedOrders = orderRepository.findByStatusOrderByInsertTimestampAsc(OrderStatus.RECEIVED);
 
-        // If the queue is empty, then return an error
-        if (queuedOrders.isEmpty()) {
-            throw new RuntimeException("No order in queue");
+        // If the queue is empty or null, then return null
+        if (queuedOrders == null || queuedOrders.isEmpty()) {
+            LOGGER.warn("No order in queue");
+            return null;
         }
 
         PizzaOrder nextOrder = queuedOrders.get(0);
@@ -91,7 +107,11 @@ public class OrderService {
 
     private PizzaOrder getPizzaOrder(String orderCode) {
         return orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElse(null);
+    }
+
+    private String generateUniqueOrderCode() {
+        return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
     private OrderStatusResponse mapToOrderStatusResponse(PizzaOrder order) {

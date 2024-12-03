@@ -58,6 +58,8 @@ class OrderServiceTest {
         verify(orderRepository, times(1)).save(any(PizzaOrder.class));
     }
 
+    // TODO test for createOrder with non valid params
+
     @Test
     void getOrderStatus_ShoudlReturnOrderStatus() {
         // Create an existing order
@@ -74,6 +76,8 @@ class OrderServiceTest {
         assertEquals(OrderStatus.RECEIVED, response.getStatus());
         assertEquals("TEST123", response.getOrderCode());
     }
+
+    // TODO test for getOrder with no order found
 
     @Test
     void updateOrderStatus_ShouldUpdateOrderStatus() {
@@ -96,8 +100,12 @@ class OrderServiceTest {
         verify(orderRepository, times(1)).save(any(PizzaOrder.class));
     }
 
+    // TODO test for updateOrder with no order found
+
+    // TODO test for updateOrder with order in READY status
+
     @Test
-    void getOrderQueue_ShoudlReturnQueuedOrders() {
+    void getOrderQueue_ShouldReturnQueuedOrders() {
         // Create existing orders
         PizzaOrder order1 = new PizzaOrder();
         order1.setOrderCode("TEST123");
@@ -125,7 +133,18 @@ class OrderServiceTest {
         assertEquals("TEST456", queue.get(1).getOrderCode());
     }
 
-    // TODO
+    @Test
+    void getOrderQueue_ShouldReturnEmptyList() {
+        // Set what to save when repository search is invoked
+        when(orderRepository.findByStatusOrderByInsertTimestampAsc(OrderStatus.RECEIVED))
+                .thenReturn(List.of());
+
+        // Call service
+        List<OrderDto> queue = orderService.getOrderQueue();
+
+        assertEquals(0, queue.size());
+    }
+
     @Test
     void getNextOrder_ShouldReturnFirstReceivedOrder() {
         // Create existing orders
@@ -193,7 +212,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void getNextOrder_ShouldThrowException() {
+    void getNextOrder_ShouldReturnNull() {
         // Set what to save when repository search is invoked
         when(orderRepository.findByStatusOrderByInsertTimestampAsc(OrderStatus.RECEIVED))
                 .thenReturn(null);
@@ -202,7 +221,8 @@ class OrderServiceTest {
                 .thenReturn(Optional.empty());
 
         // Call service
-        assertThrows(RuntimeException.class, () -> orderService.getNextOrder());
+        OrderDto order = orderService.getNextOrder();
+        assertNull(order);
     }
 
 }

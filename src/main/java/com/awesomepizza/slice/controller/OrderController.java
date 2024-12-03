@@ -5,7 +5,10 @@ import com.awesomepizza.slice.dto.OrderDto;
 import com.awesomepizza.slice.dto.OrderStatusResponse;
 import com.awesomepizza.slice.enums.OrderStatus;
 import com.awesomepizza.slice.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,16 +18,23 @@ import java.util.List;
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
 public class OrderController {
-    private final OrderService orderService;
+    @Autowired
+    private OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<OrderStatusResponse> createOrder(@RequestBody CreateOrderRequest request) {
-        return ResponseEntity.ok(orderService.createOrder(request));
+    public ResponseEntity<OrderStatusResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
+        return new ResponseEntity<>(orderService.createOrder(request), HttpStatus.CREATED);
     }
 
     @GetMapping("/{orderCode}/status")
     public ResponseEntity<OrderStatusResponse> getOrderStatus(@PathVariable String orderCode) {
-        return ResponseEntity.ok(orderService.getOrderStatus(orderCode));
+        OrderStatusResponse response = orderService.getOrderStatus(orderCode);
+
+        if (response == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     //region consumer
@@ -34,7 +44,13 @@ public class OrderController {
             @PathVariable String orderCode,
             @RequestParam OrderStatus status
     ) {
-        return ResponseEntity.ok(orderService.updateOrderStatus(orderCode, status));
+        OrderStatusResponse response = orderService.updateOrderStatus(orderCode, status);
+
+        if (response == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/queue")
@@ -46,6 +62,11 @@ public class OrderController {
     public ResponseEntity<OrderDto> getNextOrder() {
         return ResponseEntity.ok(orderService.getNextOrder());
     }
+
+    /*
+    TODO instead of using patch to update status of order, we can add another endpoint "/ready"
+    which will update the currently PREPARING order to READY
+    */
 
     //endregion
 }

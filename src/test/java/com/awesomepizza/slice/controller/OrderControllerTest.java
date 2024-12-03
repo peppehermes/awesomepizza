@@ -9,12 +9,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -53,9 +56,32 @@ public class OrderControllerTest {
                 post("/api/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.orderCode").value("TEST123"))
                 .andExpect(jsonPath("$.status").value("RECEIVED"));
+    }
+
+    @Test
+    void createOrder_ShouldReturnBadRequest() throws Exception {
+        // Create new mock request
+        CreateOrderRequest request = new CreateOrderRequest();
+        request.setPizzaType("Margherita");
+        request.setQuantity(-1);
+
+        // Create new mock response
+        ResponseEntity<OrderStatusResponse> response =
+                new ResponseEntity<>(orderService.createOrder(request), HttpStatus.BAD_REQUEST);
+
+        // Set what to receive when mocked service is called
+        when(orderService.createOrder(request)).thenReturn(response.getBody());
+
+        // Perform API request
+        mockMvc.perform(
+                        post("/api/orders")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value("quantity should be positive"));
     }
 
     @Test
@@ -78,6 +104,8 @@ public class OrderControllerTest {
                 .andExpect(jsonPath("$.status").value(status.toString()));
     }
 
+    // TODO test for get on order not found
+
     @Test
     void updateOrderStatus_ShouldReturnUpdatedOrderStatus() throws Exception {
         // Create new mock response
@@ -99,6 +127,8 @@ public class OrderControllerTest {
                 .andExpect(jsonPath("$.orderCode").value("TEST123"))
                 .andExpect(jsonPath("$.status").value("PREPARING"));
     }
+
+    // TODO test for patch on order not found
 
     @Test
     void getOrderQueue_ShouldReturnQueuedOrders() throws Exception {
@@ -130,7 +160,17 @@ public class OrderControllerTest {
                 .andExpect(jsonPath("$[1].pizzaType").value("Capricciosa"));
     }
 
-    // TODO
+    @Test
+    void getOrderQueue_ShouldReturnEmptyList() throws Exception {
+        // Set what to receive when mocked service is called
+        when(orderService.getOrderQueue()).thenReturn(List.of());
+
+        // Perform API request
+        mockMvc.perform(get("/api/orders/queue"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
     @Test
     void getNextOrder_ShouldReturnNextOrder() throws Exception {
         // Create existing orders
