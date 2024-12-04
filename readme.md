@@ -24,7 +24,7 @@ With a PATCH request to the endpoint `api/orders/{orderCode}/status` the chef ca
 
 With a GET request to the endpoint `api/orders/queue` the chef can retrieve the list of orders, sorted by the first received order.
 
-With a GET request to the endpoint `api/orders/next` the chef can retrieve the nex order, which will one of the following:
+With a GET request to the endpoint `api/orders/next` the chef can retrieve the next order, which will be one of the following:
 
 - If there is an order in PREPARING status, that order will be retrieved;
 - If no order is in PREPARING status, the first received order will be retrieved;
