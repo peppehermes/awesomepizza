@@ -1,0 +1,47 @@
+services:
+  awesomepizza:
+    image: 'slice:0.0.1'
+    build: .
+    container_name: awesomepizza
+    #    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/awesomepizza
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+    ports:
+      - "8000:8080"
+
+  redis:
+    image: 'redis:7.2.5-alpine'
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+
+  postgres:
+    image: 'postgres:16.3'
+    container_name: postgres
+    restart: always
+    # expose port 5000 to host for local dBeaver
+    ports:
+      - "5000:5432"
+    # set shared memory limit when using docker-compose
+    shm_size: 128mb
+    # volumes:
+    #   - ./src/main/resources/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    environment:
+      - "POSTGRES_DB=awesomepizza"
+      - "POSTGRES_USER=admin"
+      - "POSTGRES_PASSWORD=password"
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+      - "8090:8080"

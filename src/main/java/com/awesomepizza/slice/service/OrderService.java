@@ -98,7 +98,9 @@ public class OrderService {
         PizzaOrder nextOrder = queuedOrders.get(0);
         nextOrder.setStatus(OrderStatus.PREPARING);
         nextOrder.setUpdateTimestamp(LocalDateTime.now());
-        return mapToOrderDto(nextOrder);
+
+        PizzaOrder updatedOrder = orderRepository.save(nextOrder);
+        return mapToOrderDto(updatedOrder);
     }
 
     //endregion

@@ -155,6 +155,13 @@ class OrderServiceTest {
         order1.setPizzaType("Margherita");
         order1.setInsertTimestamp(LocalDateTime.now().minusMinutes(10));
 
+        PizzaOrder savedOrder = new PizzaOrder();
+        savedOrder.setOrderCode("TEST123");
+        savedOrder.setStatus(OrderStatus.PREPARING);
+        savedOrder.setQuantity(1);
+        savedOrder.setPizzaType("Margherita");
+        savedOrder.setInsertTimestamp(LocalDateTime.now().minusMinutes(10));
+
         PizzaOrder order2 = new PizzaOrder();
         order2.setOrderCode("TEST456");
         order2.setStatus(OrderStatus.RECEIVED);
@@ -168,6 +175,8 @@ class OrderServiceTest {
 
         when(orderRepository.findByStatus(OrderStatus.PREPARING))
                 .thenReturn(Optional.empty());
+
+        when(orderRepository.save(any(PizzaOrder.class))).thenReturn(savedOrder);
 
         // Call service
         OrderDto orderDto = orderService.getNextOrder();
